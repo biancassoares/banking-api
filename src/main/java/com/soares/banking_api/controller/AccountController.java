@@ -1,8 +1,6 @@
 package com.soares.banking_api.controller;
 
-import com.soares.banking_api.dto.AccountRequest;
-import com.soares.banking_api.dto.AccountResponse;
-import com.soares.banking_api.dto.DepositRequest;
+import com.soares.banking_api.dto.*;
 import com.soares.banking_api.service.AccountService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -49,4 +47,20 @@ public class AccountController {
 
         return ResponseEntity.ok(accountService.deposit(id, request));
     }
+    @PostMapping("/{id}/withdraw")
+    public ResponseEntity<AccountResponse> withdraw(
+            @PathVariable Long id,
+            @Valid @RequestBody WithdrawRequest request) {
+
+        return ResponseEntity.ok(accountService.withdraw(id, request));
+    }
+
+    @PostMapping("/{id}/transfer")
+    public ResponseEntity<AccountResponse> transfer(
+            @PathVariable Long id,
+            @Valid @RequestBody TransferRequest request) {
+
+        return ResponseEntity.ok(accountService.transfer(id, request));
+    }
+
 }

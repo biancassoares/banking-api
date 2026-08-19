@@ -1,13 +1,14 @@
 package com.soares.banking_api.controller;
 
+import com.soares.banking_api.dto.AccountResponse;
 import com.soares.banking_api.dto.CustomerRequest;
 import com.soares.banking_api.dto.CustomerResponse;
+import com.soares.banking_api.dto.WithdrawRequest;
 import com.soares.banking_api.service.CustomerService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController

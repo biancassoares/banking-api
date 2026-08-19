@@ -1,14 +1,14 @@
 package com.soares.banking_api.service;
 
-import com.soares.banking_api.dto.AccountRequest;
-import com.soares.banking_api.dto.AccountResponse;
-import com.soares.banking_api.dto.DepositRequest;
+import com.soares.banking_api.dto.*;
 import com.soares.banking_api.entity.Account;
 import com.soares.banking_api.entity.Customer;
 import com.soares.banking_api.entity.Transaction;
 import com.soares.banking_api.entity.TransactionCategory;
 import com.soares.banking_api.exception.AccountNotFoundException;
 import com.soares.banking_api.exception.CustomerNotFoundException;
+import com.soares.banking_api.exception.InsufficientBalanceException;
+import com.soares.banking_api.exception.SameAccountTransferException;
 import com.soares.banking_api.repository.AccountRepository;
 import com.soares.banking_api.repository.CustomerRepository;
 import com.soares.banking_api.repository.TransactionCategoryRepository;
@@ -123,6 +123,87 @@ public class AccountService {
 
         return toResponse(account);
     }
+
+    @Transactional
+    public AccountResponse withdraw(Long accountId, WithdrawRequest request) {
+
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new AccountNotFoundException(accountId));
+
+        if (account.getBalance().compareTo(request.getAmount()) < 0) {
+            throw new InsufficientBalanceException();
+        }
+
+        TransactionCategory category = transactionCategoryRepository
+                .findByName("WITHDRAW")
+                .orElseThrow();
+
+        account.setBalance(
+                account.getBalance().subtract(request.getAmount())
+        );
+
+        accountRepository.save(account);
+
+        Transaction transaction = new Transaction(
+                request.getAmount(),
+                category,
+                account,
+                null
+        );
+
+        transactionRepository.save(transaction);
+
+        return toResponse(account);
+    }
+
+    @Transactional
+    public AccountResponse transfer(Long sourceAccountId, TransferRequest request) {
+
+        Account sourceAccount = accountRepository.findById(sourceAccountId)
+                .orElseThrow(() -> new AccountNotFoundException(sourceAccountId));
+
+        Account destinationAccount = accountRepository
+                .findById(request.getDestinationAccountId())
+                .orElseThrow(() ->
+                        new AccountNotFoundException(request.getDestinationAccountId()));
+
+        if (sourceAccount.getId().equals(destinationAccount.getId())) {
+            throw new SameAccountTransferException();
+        }
+
+        if (sourceAccount.getBalance().compareTo(request.getAmount()) < 0) {
+            throw new InsufficientBalanceException();
+        }
+
+        TransactionCategory category = transactionCategoryRepository
+                .findByName("TRANSFER")
+                .orElseThrow();
+
+        sourceAccount.setBalance(
+                sourceAccount.getBalance().subtract(request.getAmount())
+        );
+
+        destinationAccount.setBalance(
+                destinationAccount.getBalance().add(request.getAmount())
+        );
+
+        accountRepository.save(sourceAccount);
+        accountRepository.save(destinationAccount);
+
+        Transaction transaction = new Transaction(
+                request.getAmount(),
+                category,
+                sourceAccount,
+                destinationAccount
+        );
+
+        transactionRepository.save(transaction);
+
+        return toResponse(sourceAccount);
+    }
+
+
+
 
 
 
