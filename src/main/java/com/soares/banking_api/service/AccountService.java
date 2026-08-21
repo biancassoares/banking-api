@@ -27,12 +27,15 @@ public class AccountService {
     private final CustomerRepository customerRepository;
     private final TransactionRepository transactionRepository;
     private final TransactionCategoryRepository transactionCategoryRepository;
+    private final IdempotencyService idempotencyService;
 
-    public AccountService(AccountRepository accountRepository, CustomerRepository customerRepository, TransactionRepository transactionRepository, TransactionCategoryRepository transactionCategoryRepository) {
+    public AccountService(AccountRepository accountRepository, CustomerRepository customerRepository, TransactionRepository transactionRepository, TransactionCategoryRepository transactionCategoryRepository, IdempotencyService idempotencyService) {
         this.accountRepository = accountRepository;
         this.customerRepository = customerRepository;
         this.transactionRepository = transactionRepository;
         this.transactionCategoryRepository = transactionCategoryRepository;
+        this.idempotencyService = idempotencyService;
+
     }
 
 
@@ -71,7 +74,9 @@ public class AccountService {
     }
 
     @Transactional
-    public AccountResponse deposit(Long accountId, DepositRequest request){
+    public AccountResponse deposit(Long accountId, DepositRequest request, String idempotencyKey){
+
+        idempotencyService.reserve(idempotencyKey);
 
         Account account = findAccountById(accountId);
 
@@ -95,7 +100,9 @@ public class AccountService {
     }
 
     @Transactional
-    public AccountResponse withdraw(Long accountId, WithdrawRequest request) {
+    public AccountResponse withdraw(Long accountId, WithdrawRequest request, String idempotencyKey) {
+
+        idempotencyService.reserve(idempotencyKey);
 
         Account account = findAccountById(accountId);
 
@@ -124,7 +131,9 @@ public class AccountService {
     }
 
     @Transactional
-    public AccountResponse transfer(Long sourceAccountId, TransferRequest request) {
+    public AccountResponse transfer(Long sourceAccountId, TransferRequest request, String idempotencyKey) {
+
+        idempotencyService.reserve(idempotencyKey);
 
         Account sourceAccount = findAccountById(sourceAccountId);
 

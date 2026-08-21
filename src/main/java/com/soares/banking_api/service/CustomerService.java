@@ -3,7 +3,9 @@ package com.soares.banking_api.service;
 import com.soares.banking_api.dto.CustomerRequest;
 import com.soares.banking_api.dto.CustomerResponse;
 import com.soares.banking_api.entity.Customer;
+import com.soares.banking_api.exception.CpfAlreadyExistsException;
 import com.soares.banking_api.exception.CustomerNotFoundException;
+import com.soares.banking_api.exception.EmailAlreadyExistsException;
 import com.soares.banking_api.repository.CustomerRepository;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +21,14 @@ public class CustomerService {
     }
 
     public CustomerResponse create(CustomerRequest request) {
+
+        if (customerRepository.existsByEmail(request.getEmail())) {
+            throw new EmailAlreadyExistsException();
+        }
+
+        if (customerRepository.existsByCpf(request.getCpf())) {
+            throw new CpfAlreadyExistsException();
+        }
 
         Customer customer = new Customer(
                 request.getName(),

@@ -43,24 +43,27 @@ public class AccountController {
     @PostMapping("/{id}/deposit")
     public ResponseEntity<AccountResponse> deposit(
             @PathVariable Long id,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody DepositRequest request) {
 
-        return ResponseEntity.ok(accountService.deposit(id, request));
+        return ResponseEntity.ok(accountService.deposit(id, request, idempotencyKey));
     }
     @PostMapping("/{id}/withdraw")
     public ResponseEntity<AccountResponse> withdraw(
             @PathVariable Long id,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody WithdrawRequest request) {
 
-        return ResponseEntity.ok(accountService.withdraw(id, request));
+        return ResponseEntity.ok(accountService.withdraw(id, request,idempotencyKey));
     }
 
     @PostMapping("/{id}/transfer")
     public ResponseEntity<AccountResponse> transfer(
             @PathVariable Long id,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody TransferRequest request) {
 
-        return ResponseEntity.ok(accountService.transfer(id, request));
+        return ResponseEntity.ok(accountService.transfer(id, request, idempotencyKey));
     }
 
 }

@@ -3,7 +3,9 @@ package com.soares.banking_api.service;
 import com.soares.banking_api.dto.CustomerRequest;
 import com.soares.banking_api.dto.CustomerResponse;
 import com.soares.banking_api.entity.Customer;
+import com.soares.banking_api.exception.CpfAlreadyExistsException;
 import com.soares.banking_api.exception.CustomerNotFoundException;
+import com.soares.banking_api.exception.EmailAlreadyExistsException;
 import com.soares.banking_api.repository.CustomerRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -162,5 +164,39 @@ class CustomerServiceTest {
         );
     }
 
+    @Test
+    void shouldThrowWhenEmailAlreadyExists() {
+
+        CustomerRequest request = new CustomerRequest();
+        request.setEmail("test@email.com");
+        request.setCpf("12345678900");
+
+        when(customerRepository.existsByEmail(request.getEmail()))
+                .thenReturn(true);
+
+        assertThrows(
+                EmailAlreadyExistsException.class,
+                () -> customerService.create(request)
+        );
+    }
+
+    @Test
+    void shouldThrowWhenCpfAlreadyExists() {
+
+        CustomerRequest request = new CustomerRequest();
+        request.setEmail("test@email.com");
+        request.setCpf("12345678900");
+
+        when(customerRepository.existsByEmail(request.getEmail()))
+                .thenReturn(false);
+
+        when(customerRepository.existsByCpf(request.getCpf()))
+                .thenReturn(true);
+
+        assertThrows(
+                CpfAlreadyExistsException.class,
+                () -> customerService.create(request)
+        );
+    }
 
 }

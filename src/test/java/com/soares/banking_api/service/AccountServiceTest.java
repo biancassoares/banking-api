@@ -4,10 +4,7 @@ import com.soares.banking_api.dto.*;
 import com.soares.banking_api.entity.Account;
 import com.soares.banking_api.entity.Customer;
 import com.soares.banking_api.entity.TransactionCategory;
-import com.soares.banking_api.exception.AccountNotFoundException;
-import com.soares.banking_api.exception.CustomerNotFoundException;
-import com.soares.banking_api.exception.InsufficientBalanceException;
-import com.soares.banking_api.exception.SameAccountTransferException;
+import com.soares.banking_api.exception.*;
 import com.soares.banking_api.repository.AccountRepository;
 import com.soares.banking_api.repository.CustomerRepository;
 import com.soares.banking_api.repository.TransactionCategoryRepository;
@@ -24,7 +21,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AccountServiceTest {
@@ -42,6 +39,8 @@ class AccountServiceTest {
     private TransactionCategoryRepository transactionCategoryRepository;
 
     private AccountService accountService;
+    @Mock
+    private IdempotencyService idempotencyService;
 
     @BeforeEach
     void setUp() {
@@ -49,7 +48,8 @@ class AccountServiceTest {
                 accountRepository,
                 customerRepository,
                 transactionRepository,
-                transactionCategoryRepository
+                transactionCategoryRepository,
+                idempotencyService
         );
     }
 
@@ -143,9 +143,11 @@ class AccountServiceTest {
         when(transactionCategoryRepository.findByName("DEPOSIT"))
                 .thenReturn(Optional.of(category));
 
-        AccountResponse response = accountService.deposit(1L, request);
+        AccountResponse response = accountService.deposit(1L, request, "test-key");
 
         assertEquals(new BigDecimal("150.00"), response.getBalance());
+
+        verify(idempotencyService).reserve("test-key");
     }
 
     @Test
@@ -170,9 +172,11 @@ class AccountServiceTest {
         when(transactionCategoryRepository.findByName("WITHDRAW"))
                 .thenReturn(Optional.of(category));
 
-        AccountResponse response = accountService.withdraw(1L, request);
+        AccountResponse response = accountService.withdraw(1L, request, "test-key");
 
         assertEquals(new BigDecimal("150.00"), response.getBalance());
+
+        verify(idempotencyService).reserve("test-key");
     }
 
     @Test
@@ -187,7 +191,7 @@ class AccountServiceTest {
         when(accountRepository.findById(1L))
                 .thenReturn(Optional.of(account));
 
-        assertThrows(InsufficientBalanceException.class, ()-> accountService.withdraw(1L,request));
+        assertThrows(InsufficientBalanceException.class, ()-> accountService.withdraw(1L,request, "test-key"));
 
     }
     @Test
@@ -226,7 +230,7 @@ class AccountServiceTest {
         when(transactionCategoryRepository.findByName("TRANSFER"))
                 .thenReturn(Optional.of(category));
 
-        AccountResponse response = accountService.transfer(1L, request);
+        AccountResponse response = accountService.transfer(1L, request, "test-key");
 
         assertEquals(
                 new BigDecimal("150.00"),
@@ -237,6 +241,8 @@ class AccountServiceTest {
                 new BigDecimal("150.00"),
                 destinationAccount.getBalance()
         );
+
+        verify(idempotencyService).reserve("test-key");
     }
 
     @Test
@@ -259,7 +265,7 @@ class AccountServiceTest {
         when(accountRepository.findById(2L))
                 .thenReturn(Optional.of(destinationAccount));
 
-        assertThrows(InsufficientBalanceException.class,()->accountService.transfer(1L, request));
+        assertThrows(InsufficientBalanceException.class,()->accountService.transfer(1L, request, "test-key"));
     }
 
     @Test
@@ -276,9 +282,26 @@ class AccountServiceTest {
         when (accountRepository.findById(1L))
                 .thenReturn(Optional.of(account));
 
-        assertThrows(SameAccountTransferException.class,()-> accountService.transfer(1L, request));
+        assertThrows(SameAccountTransferException.class,()-> accountService.transfer(1L, request, "test-key"));
 
+    }
 
+    @Test
+    void shouldNotDepositWhenIdempotencyKeyAlreadyExists() {
 
+        DepositRequest request = new DepositRequest();
+        request.setAmount(new BigDecimal("100.00"));
+
+        doThrow(new IdempotencyKeyAlreadyExistsException())
+                .when(idempotencyService)
+                .reserve("duplicate-key");
+
+        assertThrows(
+                IdempotencyKeyAlreadyExistsException.class,
+                () -> accountService.deposit(1L, request, "duplicate-key")
+        );
+
+        verify(accountRepository, never()).findById(anyLong());
+        verify(transactionRepository, never()).save(any());
     }
 }
