@@ -31,15 +31,6 @@ public class CustomerService {
         return toResponse(savedCustomer);
     }
 
-    private CustomerResponse toResponse(Customer customer) {
-        return new CustomerResponse(
-                customer.getId(),
-                customer.getName(),
-                customer.getEmail(),
-                customer.getCpf()
-        );
-    }
-
     public List<CustomerResponse> findAll() {
         return customerRepository.findAll()
                 .stream()
@@ -48,16 +39,14 @@ public class CustomerService {
     }
     public CustomerResponse findById(Long id) {
 
-        Customer customer = customerRepository.findById(id)
-                .orElseThrow(() -> new CustomerNotFoundException(id));
+        Customer customer = findCustomerById(id);
 
         return toResponse(customer);
     }
 
     public CustomerResponse update(Long id, CustomerRequest request) {
 
-        Customer customer = customerRepository.findById(id)
-                .orElseThrow(() -> new CustomerNotFoundException(id));
+        Customer customer = findCustomerById(id);
 
         customer.setName(request.getName());
         customer.setEmail(request.getEmail());
@@ -70,13 +59,21 @@ public class CustomerService {
 
     public void delete(Long id) {
 
-        Customer customer = customerRepository.findById(id)
-                .orElseThrow(() -> new CustomerNotFoundException(id));
+        Customer customer = findCustomerById(id);
 
         customerRepository.delete(customer);
     }
-
-
-
+    private CustomerResponse toResponse(Customer customer) {
+        return new CustomerResponse(
+                customer.getId(),
+                customer.getName(),
+                customer.getEmail(),
+                customer.getCpf()
+        );
+    }
+    private Customer findCustomerById(Long id) {
+        return customerRepository.findById(id)
+                .orElseThrow(() -> new CustomerNotFoundException(id));
+    }
 
 }

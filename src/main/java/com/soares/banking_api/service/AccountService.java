@@ -56,32 +56,6 @@ public class AccountService {
         return toResponse(savedAccount);
     }
 
-    private AccountResponse toResponse(Account account) {
-
-        return new AccountResponse(
-                account.getId(),
-                account.getAccountNumber(),
-                account.getBalance(),
-                account.getCustomer().getId(),
-                account.getCustomer().getName()
-        );
-    }
-
-    private String generateAccountNumber() {
-
-        String accountNumber;
-
-        do {
-            accountNumber = "ACC-" + UUID.randomUUID()
-                    .toString()
-                    .substring(0, 8)
-                    .toUpperCase();
-
-        } while (accountRepository.existsByAccountNumber(accountNumber));
-
-        return accountNumber;
-    }
-
     public List <AccountResponse> findAll(){
         return  accountRepository.findAll()
                 .stream()
@@ -91,8 +65,7 @@ public class AccountService {
 
     public AccountResponse findById(Long id) {
 
-        Account account = accountRepository.findById(id)
-                .orElseThrow(() -> new AccountNotFoundException(id));
+        Account account = findAccountById(id);
 
         return toResponse(account);
     }
@@ -100,12 +73,9 @@ public class AccountService {
     @Transactional
     public AccountResponse deposit(Long accountId, DepositRequest request){
 
-        Account account = accountRepository.findById(accountId)
-                .orElseThrow(()-> new AccountNotFoundException(accountId));
+        Account account = findAccountById(accountId);
 
-        TransactionCategory category = transactionCategoryRepository
-                .findByName("DEPOSIT")
-                .orElseThrow();
+        TransactionCategory category = findCategoryByName("DEPOSIT");
         account.setBalance(
                 account.getBalance().add(request.getAmount())
         );
@@ -127,16 +97,13 @@ public class AccountService {
     @Transactional
     public AccountResponse withdraw(Long accountId, WithdrawRequest request) {
 
-        Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new AccountNotFoundException(accountId));
+        Account account = findAccountById(accountId);
 
         if (account.getBalance().compareTo(request.getAmount()) < 0) {
             throw new InsufficientBalanceException();
         }
 
-        TransactionCategory category = transactionCategoryRepository
-                .findByName("WITHDRAW")
-                .orElseThrow();
+        TransactionCategory category = findCategoryByName("WITHDRAW");
 
         account.setBalance(
                 account.getBalance().subtract(request.getAmount())
@@ -159,13 +126,10 @@ public class AccountService {
     @Transactional
     public AccountResponse transfer(Long sourceAccountId, TransferRequest request) {
 
-        Account sourceAccount = accountRepository.findById(sourceAccountId)
-                .orElseThrow(() -> new AccountNotFoundException(sourceAccountId));
+        Account sourceAccount = findAccountById(sourceAccountId);
 
-        Account destinationAccount = accountRepository
-                .findById(request.getDestinationAccountId())
-                .orElseThrow(() ->
-                        new AccountNotFoundException(request.getDestinationAccountId()));
+        Account destinationAccount =
+                findAccountById(request.getDestinationAccountId());
 
         if (sourceAccount.getId().equals(destinationAccount.getId())) {
             throw new SameAccountTransferException();
@@ -175,9 +139,7 @@ public class AccountService {
             throw new InsufficientBalanceException();
         }
 
-        TransactionCategory category = transactionCategoryRepository
-                .findByName("TRANSFER")
-                .orElseThrow();
+        TransactionCategory category = findCategoryByName("TRANSFER");
 
         sourceAccount.setBalance(
                 sourceAccount.getBalance().subtract(request.getAmount())
@@ -202,11 +164,38 @@ public class AccountService {
         return toResponse(sourceAccount);
     }
 
+    private AccountResponse toResponse(Account account) {
 
+        return new AccountResponse(
+                account.getId(),
+                account.getAccountNumber(),
+                account.getBalance(),
+                account.getCustomer().getId(),
+                account.getCustomer().getName()
+        );
+    }
+    private String generateAccountNumber() {
 
+        String accountNumber;
 
+        do {
+            accountNumber = "ACC-" + UUID.randomUUID()
+                    .toString()
+                    .substring(0, 8)
+                    .toUpperCase();
 
+        } while (accountRepository.existsByAccountNumber(accountNumber));
 
-
+        return accountNumber;
+    }
+    private Account findAccountById(Long id) {
+        return accountRepository.findById(id)
+                .orElseThrow(() -> new AccountNotFoundException(id));
+    }
+    private TransactionCategory findCategoryByName(String name) {
+        return transactionCategoryRepository
+                .findByName(name)
+                .orElseThrow();
+    }
 
 }
