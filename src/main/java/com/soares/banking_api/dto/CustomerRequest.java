@@ -28,6 +28,9 @@ public class CustomerRequest {
     @Pattern(regexp = "\\d{11}", message = "CPF must contain 11 digits")
     private String cpf;
 
+    @NotBlank(message = "Password is required")
+    private String password;
+
 
 
 }

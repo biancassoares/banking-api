@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,8 +20,10 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
 
 @ExtendWith(MockitoExtension.class)
 class CustomerServiceTest {
@@ -29,9 +32,12 @@ class CustomerServiceTest {
 
     private CustomerService customerService;
 
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
     @BeforeEach
     void setUp() {
-        customerService = new CustomerService(customerRepository);
+        customerService = new CustomerService(customerRepository, passwordEncoder);
     }
 
     @Test
@@ -41,6 +47,16 @@ class CustomerServiceTest {
         request.setName("Bianca");
         request.setEmail("bianca@email.com");
         request.setCpf("11111111111");
+        request.setPassword("123456");
+
+        when(customerRepository.existsByEmail(request.getEmail()))
+                .thenReturn(false);
+
+        when(customerRepository.existsByCpf(request.getCpf()))
+                .thenReturn(false);
+
+        when(passwordEncoder.encode(request.getPassword()))
+                .thenReturn("encoded-password");
 
         when(customerRepository.save(any(Customer.class)))
                 .thenAnswer(invocation -> {
@@ -55,6 +71,12 @@ class CustomerServiceTest {
         assertEquals("Bianca", response.getName());
         assertEquals("bianca@email.com", response.getEmail());
         assertEquals("11111111111", response.getCpf());
+
+        verify(passwordEncoder).encode("123456");
+
+        verify(customerRepository).save(argThat((Customer customer) ->
+                customer.getPassword().equals("encoded-password")
+        ));
     }
     @Test
     void shouldFindCustomerById() {

@@ -7,6 +7,7 @@ import com.soares.banking_api.exception.CpfAlreadyExistsException;
 import com.soares.banking_api.exception.CustomerNotFoundException;
 import com.soares.banking_api.exception.EmailAlreadyExistsException;
 import com.soares.banking_api.repository.CustomerRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,9 +16,12 @@ import java.util.List;
 public class CustomerService {
 
     private final CustomerRepository customerRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public CustomerService(CustomerRepository customerRepository) {
+    public CustomerService(CustomerRepository customerRepository, PasswordEncoder passwordEncoder) {
         this.customerRepository = customerRepository;
+        this.passwordEncoder = passwordEncoder;
+
     }
 
     public CustomerResponse create(CustomerRequest request) {
@@ -29,11 +33,15 @@ public class CustomerService {
         if (customerRepository.existsByCpf(request.getCpf())) {
             throw new CpfAlreadyExistsException();
         }
+        String encodedPassword =
+                passwordEncoder.encode(request.getPassword());
 
         Customer customer = new Customer(
                 request.getName(),
                 request.getEmail(),
-                request.getCpf()
+                request.getCpf(),
+                encodedPassword
+
         );
 
         Customer savedCustomer = customerRepository.save(customer);

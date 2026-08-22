@@ -1,7 +1,11 @@
 package com.soares.banking_api.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@Setter
 @Entity
 @Table(name="customers")
 public class Customer {
@@ -18,46 +22,19 @@ public class Customer {
     @Column(nullable = false, unique = true)
     private String cpf;
 
+    @Column(nullable = false)
+    private String password;
+
 
     public Customer() {
     }
 
-    public Customer(String name, String email, String cpf) {
+    public Customer(String name, String email, String cpf, String password) {
         this.name = name;
         this.email = email;
         this.cpf = cpf;
+        this.password = password;
     }
 
-    public String getEmail() {
-        return email;
-    }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getCpf() {
-        return cpf;
-    }
-
-    public void setCpf(String cpf) {
-        this.cpf = cpf;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
 }
